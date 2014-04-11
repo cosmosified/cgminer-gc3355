@@ -293,15 +293,17 @@ static void gc3355_init(struct cgpu_info *gridseed, GRIDSEED_INFO *info)
 		gc3355_switch_voltage(gridseed);
 }
 
-static bool get_options(GRIDSEED_INFO *info, char *options)
+static bool get_options(GRIDSEED_INFO *info, char *options, char * serial_string)
 {
 	char *ss, *p, *end, *comma, *colon;
 	int tmp, pll_r = 0, pll_f = 0, pll_od = 0;
+	bool per_device_freq = false;
 
 	if (options == NULL)
 		return false;
 
-	applog(LOG_NOTICE, "GridSeed options: '%s'", options);
+        applog(LOG_NOTICE, "GridSeed options for %s: '%s'", serial_string, options);
+
 	ss = strdup(options);
 	p  = ss;
 	end = p + strlen(p);
@@ -320,6 +322,12 @@ another:
 		info->baud = (tmp != 0) ? tmp : info->baud;
 	}
 	else if (strcasecmp(p, "freq")==0) {
+		if (!per_device_freq) {
+			info->freq = tmp;
+		}
+	}
+	else if (strcasecmp(p, serial_string)==0) {
+		per_device_freq=true;
 		info->freq = tmp;
 	}
 	else if (strcasecmp(p, "pll_r")==0) {
@@ -579,7 +587,7 @@ static bool gridseed_detect_one(libusb_device *dev, struct usb_find_devices *fou
 	memset(info->nonce_count, 0, sizeof(info->nonce_count));
 	memset(info->error_count, 0, sizeof(info->error_count));
 
-	get_options(info, opt_gridseed_options);
+	get_options(info, opt_gridseed_options, gridseed->usbdev->serial_string);
 
 	update_usb_stats(gridseed);
 
